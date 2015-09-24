@@ -1,0 +1,21 @@
+{
+  "name": "purescript-reddit-api",
+  "version": "1.0.0",
+  "moduleType": [
+    "node"
+  ],
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "output"
+  ],
+  "dependencies": {
+    "purescript-foreign": "~0.7.0",
+    "purescript-generics": "~0.6.1",
+    "purescript-simple-request": "~2.0.1"
+  },
+  "resolutions": {
+    "purescript-generics": "~0.6.1"
+  }
+}
