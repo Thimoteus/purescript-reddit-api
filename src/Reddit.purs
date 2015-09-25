@@ -3,9 +3,10 @@ module Reddit where
 import Prelude
 
 import Node.SimpleRequest (
-    AffReq(), Opts(), SRHeaderOptions(), Verb(..), request, srHeaderOpts,
+    AffReq(), Opts(), SRHeaderOptions(), Verb(..), srHeaderOpts,
     headers, hostname, path, method, auth
   )
+import Node.SimpleRequest.Secure (request)
 import qualified Network.HTTP as HTTP
 import Data.Tuple (Tuple(..))
 import Data.Options ((:=))
@@ -27,7 +28,7 @@ getToken appinfo = getToken' where
 
   opts :: Opts
   opts = headers := optsHeader
-      <> hostname := "https://ssl.reddit.com"
+      <> hostname := "ssl.reddit.com"
       <> path := "/api/v1/access_token"
       <> method := POST
       <> auth := (appinfo.id ++ ":" ++ appinfo.secret)
