@@ -65,8 +65,8 @@ call (Tuple ua (Token t)) (RRequest r) = call' where
 
 get :: forall s e r. (Requestable s, Responsable r) => UAToken -> String -> Maybe s -> AffReq e r
 get t endpt s = call t $ RRequest { endpt: endpt ++ ".json"
-                                , method: GET
-                                , content: s }
+                                  , method: GET
+                                  , content: s }
 
 get' :: forall e r. (Responsable r) => UAToken -> String -> AffReq e r
 get' t endpt = get t endpt (Nothing :: Maybe String)

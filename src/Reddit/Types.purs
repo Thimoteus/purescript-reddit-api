@@ -8,11 +8,12 @@ import Data.Generic (Generic, gShow)
 import Data.Tuple (Tuple(..))
 import Data.Maybe (Maybe(..))
 import Data.Either (either)
-import Data.Foreign (readArray)
+import Data.Foreign (readArray, isArray, readString)
 import Data.Foreign.Class (readJSON)
 import Data.Foreign.Index (prop)
 import Data.Traversable (sequence)
-import Data.Array (take)
+import Data.Array (take, filter)
+import Data.Array.Unsafe (unsafeIndex)
 
 import Control.Bind ((>=>))
 
@@ -134,3 +135,70 @@ instance subredditIsForeign :: IsForeign Subreddit where
 
 instance responsableSubreddit :: Responsable Subreddit where
   fromForeign = either (const $ Subreddit []) id <<< readJSON <<< unsafeToString
+
+newtype Comment = Comment { subredditId :: String
+                          , linkId :: String
+                          , replies :: Maybe (Array Comment)
+                          , id :: String
+                          , author :: String
+                          , parentId :: String
+                          , body :: String
+                          , subreddit :: String
+                          , name :: String
+                          , created :: Int }
+
+instance commentIsForeign :: IsForeign Comment where
+  read value = do
+    c <- prop "data" value
+    subreddit_id <- readProp "subreddit_id" c
+    link_id <- readProp "link_id" c
+    id <- readProp "id" c
+    author <- readProp "author" c
+    parent_id <- readProp "parent_id" c
+    body <- readProp "body" c
+    subreddit <- readProp "subreddit" c
+    name <- readProp "name" c
+    created <- readProp "created" c
+    reps <- prop "replies" c
+    replies <- if isArray reps
+        then Just <$> readProp "replies" c
+        else return Nothing
+    return $ Comment { subredditId: subreddit_id
+                     , linkId: link_id
+                     , id: id
+                     , author: author
+                     , parentId: parent_id
+                     , body: body
+                     , subreddit: subreddit
+                     , name: name
+                     , created: created
+                     , replies: replies }
+
+derive instance genericComment :: Generic Comment
+
+instance showComment :: Show Comment where
+  show = gShow
+
+data CommentThread = CommentThread Post (Array Comment) | EmptyThread
+
+derive instance genericCommentThread :: Generic CommentThread
+
+instance showCommentThread :: Show CommentThread where
+  show x@(CommentThread _ _)= gShow x
+  show EmptyThread = "Couldn't find thread."
+
+instance commentThreadIsForeign :: IsForeign CommentThread where
+  read value = do
+    tree <- readArray value
+    let parent = unsafeIndex tree 0
+        children = unsafeIndex tree 1
+    post <- (flip unsafeIndex 0 <$> ((prop "data" >=> prop "children" >=> readArray) parent)) >>= readProp "data"
+    commentsArr <- children # (prop "data" >=> prop "children" >=> readArray)
+    comments <- sequence $ map read $ filter isComment commentsArr
+    return $ CommentThread post comments
+      where
+        isComment :: Foreign -> Boolean
+        isComment f = either (const false) (== "t1") $ prop "kind" f >>= readString
+
+instance responsableCommentThread :: Responsable CommentThread where
+  fromForeign = either (const EmptyThread) id <<< readJSON <<< unsafeToString
