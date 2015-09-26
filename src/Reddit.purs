@@ -10,16 +10,19 @@ import Node.SimpleRequest.Secure (request)
 import qualified Network.HTTP as HTTP
 import Data.Tuple (Tuple(..))
 import Data.Options ((:=))
-import Data.Foreign (Foreign())
+import Data.Either (either)
+import Data.Foreign.Class (readJSON)
 
 import Reddit.Types
+import Reddit.Util
 
-getToken :: forall e. AppInfo -> AffReq e (Tuple Foreign String)
+getToken :: forall e. AppInfo -> AffReq e (Tuple String Token)
 getToken appinfo = getToken' where
 
   getToken' = do
     res <- request opts msg
-    return $ Tuple res.body appinfo.userAgent
+    return $ Tuple appinfo.userAgent
+                 $ either (const emptyToken) id $ readJSON $ unsafeToString res.body
 
   msg :: String
   msg = qsify { grant_type: "password"
