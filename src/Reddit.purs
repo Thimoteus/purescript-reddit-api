@@ -11,9 +11,13 @@ import qualified Network.HTTP as HTTP
 import Data.Tuple (Tuple(..))
 import Data.Options ((:=))
 import Data.Maybe (maybe, Maybe(..))
+import Data.Either (either)
 
 import Reddit.Types
 import Reddit.Util
+
+import Control.Monad.Eff.Class
+import Control.Monad.Eff.Console (print)
 
 -- | Get an oauth token from Reddit.
 -- | Returns a (UserAgent, Token) tuple.
@@ -22,7 +26,7 @@ getToken appinfo = getToken' where
 
   getToken' = do
     res <- request opts msg
-    return $ Tuple appinfo.userAgent $ fromForeign res.body
+    return $ Tuple appinfo.userAgent $ either (const emptyToken) id $ fromForeign res.body
 
   msg :: String
   msg = qsify { grant_type: "password"
@@ -41,7 +45,9 @@ getToken appinfo = getToken' where
     srHeaderOpts [ Tuple HTTP.ContentType "application/x-www-form-urlencoded"
                  , Tuple HTTP.UserAgent appinfo.userAgent ]
 
-call :: forall s e r. (Responsable r, Requestable s) => UAToken -> RedditRequest s -> AffReq e r
+-- | The basic method for interacting with Reddit. You most likely want `get`, `get'`, `post`
+-- | or `post'` for more control than methods like `subreddit`, `commentThread`, etc.
+call :: forall s r. (Responsable r, Requestable s) => UAToken -> RedditRequest s -> AffReddit r
 call (Tuple ua (Token t)) (RRequest r) = call' where
 
   call' = do
@@ -63,24 +69,42 @@ call (Tuple ua (Token t)) (RRequest r) = call' where
                  , Tuple HTTP.ContentType "application/x-www-form-urlencoded"
                  , Tuple HTTP.Authorization $ "bearer " ++ t.accessToken ]
 
-get :: forall s e r. (Requestable s, Responsable r) => UAToken -> String -> Maybe s -> AffReq e r
-get t endpt s = call t $ RRequest { endpt: endpt ++ ".json"
+-- | A convenience function for making `GET` requests. The response must be an instance of
+-- | the `Responsable` typeclass, and any options passed must be an instance of the
+-- | `Requestable` typeclass.
+get :: forall s r. (Requestable s, Responsable r) => UAToken -> String -> Maybe s -> AffReddit r
+get t endpt opts = call t $ RRequest { endpt: endpt ++ ".json"
                                   , method: GET
-                                  , content: s }
+                                  , content: opts }
 
-get' :: forall e r. (Responsable r) => UAToken -> String -> AffReq e r
+-- | A convenience function when you don't want to provide options.
+get' :: forall r. (Responsable r) => UAToken -> String -> AffReddit r
 get' t endpt = get t endpt (Nothing :: Maybe String)
 
-post :: forall s e r. (Requestable s, Responsable r) => UAToken -> String -> s -> AffReq e r
+-- | A convenience function for making `POST` requests. If you care about the response,
+-- | it must implement the `Responsable` typeclass.
+post :: forall s r. (Requestable s, Responsable r) => UAToken -> String -> s -> AffReddit r
 post t endpt content = call t $ RRequest { endpt: endpt
                                          , method: POST
                                          , content: Just content }
 
-post' :: forall s e. (Requestable s) => UAToken -> String -> s -> AffReq e Unit
+-- | A convenience function for when you don't care about the response.
+post' :: forall s. (Requestable s) => UAToken -> String -> s -> AffReddit Unit
 post' = post
 
-subreddit :: forall s e. (Requestable s) => UAToken -> String -> Maybe s -> AffReq e Subreddit
-subreddit t sub s = get t (subbify sub) s
+-- | Given a subreddit name, attempt to get the front page of that subreddit.
+subreddit :: forall s. (Requestable s) => UAToken -> SrName -> Maybe s -> AffReddit Subreddit
+subreddit t sub opts = get t (runSrName sub) opts
 
-subreddit' :: forall e. UAToken -> String -> AffReq e Subreddit
-subreddit' t sub = get' t $ subbify sub
+-- | A convenience function for when you don't want to provide options.
+subreddit' :: UAToken -> SrName -> AffReddit Subreddit
+subreddit' t sub = get' t $ runSrName sub
+
+-- | Given a Post, attempt to return the CommentThread of that Post.
+commentThread :: forall s. (Requestable s) => UAToken -> Post -> Maybe s -> AffReddit CommentThread
+commentThread t (Post o) opts = get t endpt opts where
+  endpt = subbify o.subreddit ++ "/comments/" ++ o.id
+
+commentThread' :: UAToken -> Post -> AffReddit CommentThread
+commentThread' t (Post o) = get' t endpt where
+  endpt = subbify o.subreddit ++ "/comments/" ++ o.id

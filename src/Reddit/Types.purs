@@ -7,7 +7,7 @@ import Data.Foreign.Class (IsForeign, read, readProp)
 import Data.Generic (Generic, gShow)
 import Data.Tuple (Tuple(..))
 import Data.Maybe (Maybe(..))
-import Data.Either (either)
+import Data.Either (Either(..), either)
 import Data.Foreign (readArray, isArray, readString)
 import Data.Foreign.Class (readJSON)
 import Data.Foreign.Index (prop)
@@ -16,19 +16,22 @@ import Data.Array (take, filter)
 import Data.Array.Unsafe (unsafeIndex)
 
 import Control.Bind ((>=>))
+import Control.Monad.Eff.Exception (Error(), error)
 
-import Node.SimpleRequest (Verb(..))
+import Node.SimpleRequest (Verb(..), AffReq())
 
 import Reddit.Util
 
-class Responsable s where
-  fromForeign :: Foreign -> s
+type AffReddit r = forall e. AffReq e (Either Error r)
+
+class Responsable r where
+  fromForeign :: Foreign -> Either Error r
 
 class Requestable s where
   querystring :: s -> String
 
 instance responsableUnit :: Responsable Unit where
-  fromForeign = const unit
+  fromForeign = const $ Right unit
 
 type AppInfo = { id :: String
                , secret :: String
@@ -42,7 +45,7 @@ newtype Token = Token { accessToken :: String
                       , scope :: String }
 
 instance responsableToken :: Responsable Token where
-  fromForeign = either (const emptyToken) id <<< readJSON <<< unsafeToString
+  fromForeign = either (Left <<< error <<< show) (Right <<< id) <<< readJSON <<< unsafeToString
 
 instance tokenIsForeign :: IsForeign Token where
   read value = do
@@ -124,6 +127,14 @@ instance postIsForeign :: IsForeign Post where
 newtype Subreddit = Subreddit (Array Post)
 runSubreddit (Subreddit arr) = arr
 
+newtype SrName = SrName String
+
+mkSrName :: String -> SrName
+mkSrName = SrName <<< subbify
+
+runSrName :: SrName -> String
+runSrName (SrName s) = s
+
 instance showSubreddit :: Show Subreddit where
   show (Subreddit arr) = "Subreddit " ++ show arr
 
@@ -134,7 +145,10 @@ instance subredditIsForeign :: IsForeign Subreddit where
     return $ Subreddit arr
 
 instance responsableSubreddit :: Responsable Subreddit where
-  fromForeign = either (const $ Subreddit []) id <<< readJSON <<< unsafeToString
+  fromForeign = either (Left <<< error <<< show) (Right <<< id) <<< readJSON <<< unsafeToString
+
+mapSubreddit :: forall a b. (Array Post -> Array Post) -> Subreddit -> Subreddit
+mapSubreddit f (Subreddit arr) = Subreddit (f arr)
 
 newtype Comment = Comment { subredditId :: String
                           , linkId :: String
@@ -179,13 +193,12 @@ derive instance genericComment :: Generic Comment
 instance showComment :: Show Comment where
   show = gShow
 
-data CommentThread = CommentThread Post (Array Comment) | EmptyThread
+data CommentThread = CommentThread Post (Array Comment)
 
 derive instance genericCommentThread :: Generic CommentThread
 
 instance showCommentThread :: Show CommentThread where
-  show x@(CommentThread _ _)= gShow x
-  show EmptyThread = "Couldn't find thread."
+  show = gShow
 
 instance commentThreadIsForeign :: IsForeign CommentThread where
   read value = do
@@ -201,4 +214,4 @@ instance commentThreadIsForeign :: IsForeign CommentThread where
         isComment f = either (const false) (== "t1") $ prop "kind" f >>= readString
 
 instance responsableCommentThread :: Responsable CommentThread where
-  fromForeign = either (const EmptyThread) id <<< readJSON <<< unsafeToString
+  fromForeign = either (Left <<< error <<< show) (Right <<< id) <<< readJSON <<< unsafeToString
