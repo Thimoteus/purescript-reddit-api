@@ -10,14 +10,15 @@ import Node.SimpleRequest.Secure (request)
 import qualified Network.HTTP as HTTP
 import Data.Tuple (Tuple(..))
 import Data.Options ((:=))
-import Data.Maybe (maybe, Maybe(..))
-import Data.Either (either)
+import Data.Maybe (Maybe(..), maybe)
+import Data.Either (Either(..), either)
 
 import Reddit.Types
 import Reddit.Util
 
 import Control.Monad.Eff.Class
-import Control.Monad.Eff.Console (print)
+--import Control.Monad.Eff.Console (print)
+import Control.Monad.Aff (attempt)
 
 -- | Get an oauth token from Reddit.
 -- | Returns a (UserAgent, Token) tuple.
@@ -51,8 +52,8 @@ call :: forall s r. (Responsable r, Requestable s) => UAToken -> RedditRequest s
 call (Tuple ua (Token t)) (RRequest r) = call' where
 
   call' = do
-    res <- request opts msg
-    return $ fromForeign res.body
+    res <- attempt $ request opts msg
+    either (return <<< Left) (return <<< fromForeign <<< _.body) res
 
   msg :: String
   msg = maybe "" querystring r.content
