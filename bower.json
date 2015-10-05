@@ -11,6 +11,7 @@
     "output"
   ],
   "dependencies": {
+    "purescript-datetime": "~0.9.0",
     "purescript-foreign": "~0.7.0",
     "purescript-generics": "~0.6.1",
     "purescript-simple-request": "~2.0.1"

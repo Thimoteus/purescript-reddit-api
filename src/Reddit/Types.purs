@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Foreign (Foreign())
 import Data.Foreign.Class (IsForeign, read, readProp)
-import Data.Generic (Generic, gShow)
+import Data.Generic (Generic, gShow, gEq)
 import Data.Tuple (Tuple(..))
 import Data.Maybe (Maybe(..))
 import Data.Either (Either(..), either)
@@ -14,15 +14,24 @@ import Data.Foreign.Index (prop)
 import Data.Traversable (sequence)
 import Data.Array (take, filter)
 import Data.Array.Unsafe (unsafeIndex)
+import Data.Time (Milliseconds())
 
 import Control.Bind ((>=>))
-import Control.Monad.Eff.Exception (Error(), error)
+import Control.Monad.Eff (Eff())
+import Control.Monad.Aff (Aff(), launchAff)
+import Control.Monad.Eff.Exception (EXCEPTION(), Error(), error)
+import Control.Monad.State.Trans (StateT(..), evalStateT)
+import Control.Monad.Except.Trans (ExceptT(..), runExceptT)
+import Control.Monad.Reader.Trans (ReaderT(..), runReaderT)
 
-import Node.SimpleRequest (Verb(..), AffReq())
+import Node.SimpleRequest (REQUEST(), Verb(..), AffReq())
 
 import Reddit.Util
 
-type AffReddit r = forall e. AffReq e (Either Error r)
+type RedditS = Tuple Milliseconds Token
+type REnv e = ReaderT AppInfo (AffReq e)
+type RState e = StateT RedditS (REnv e)
+type R e d = ExceptT Error (RState e) d
 
 class Responsable r where
   fromForeign :: Foreign -> Either Error r
@@ -44,6 +53,8 @@ newtype Token = Token { accessToken :: String
                       , expiresIn :: Int
                       , scope :: String }
 
+runToken (Token t) = t
+
 instance responsableToken :: Responsable Token where
   fromForeign = either (Left <<< error <<< show) (Right <<< id) <<< readJSON <<< unsafeToString
 
@@ -63,10 +74,8 @@ derive instance genericToken :: Generic Token
 instance showToken :: Show Token where
   show = gShow
 
-emptyToken :: Token
-emptyToken = Token { accessToken: "", tokenType: "", expiresIn: 0, scope: "" }
-
-type UAToken = Tuple String Token
+instance eqToken :: Eq Token where
+  eq = gEq
 
 newtype RedditRequest a = RRequest { endpt :: String
                                    , method :: Verb
@@ -77,6 +86,9 @@ instance requestableRRequest :: (Requestable a) => Requestable (RedditRequest a)
 
 instance requestableString :: Requestable String where
   querystring = id
+
+instance requestableUnit :: Requestable Unit where
+  querystring _ = ""
 
 newtype Post = Post { domain :: String
                     , subreddit :: String
@@ -127,6 +139,7 @@ instance postIsForeign :: IsForeign Post where
 newtype Subreddit = Subreddit (Array Post)
 runSubreddit (Subreddit arr) = arr
 
+-- TODO: Dont export SrName constructor
 newtype SrName = SrName String
 
 mkSrName :: String -> SrName

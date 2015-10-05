@@ -3,7 +3,11 @@ module Reddit.Util where
 import Prelude
 import Data.Foreign (unsafeFromForeign, Foreign())
 import qualified Data.String as S
+import Data.Time (Milliseconds(..))
 import Unsafe.Coerce (unsafeCoerce)
+import Math (floor)
+import Data.Maybe.Unsafe (fromJust)
+import Data.Int (fromNumber)
 
 unsafeToString :: Foreign -> String
 unsafeToString = unsafeFromForeign
@@ -17,3 +21,12 @@ subbify s
   | otherwise = "/r/" ++ s
 
 foreign import undefined :: forall a. a
+
+runMilliseconds :: Milliseconds -> Number
+runMilliseconds (Milliseconds n) = n
+
+fromFloor :: Number -> Int
+fromFloor = fromJust <<< fromNumber <<< floor
+
+closeEnough :: Milliseconds -> Int
+closeEnough = fromFloor <<< runMilliseconds
