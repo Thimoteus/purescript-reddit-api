@@ -142,13 +142,16 @@ post endpt content = call $ RRequest { endpt: endpt
 post' :: forall s e. (Requestable s) => String -> s -> R e Unit
 post' = post
 
+mkSrName :: String -> SrName
+mkSrName = SrName <<< subbify
+
 -- | Given a subreddit name, attempt to get the front page of that subreddit.
-subreddit :: forall s e. (Requestable s) => SrName -> Maybe s -> R e Subreddit
-subreddit sub opts = get (runSrName sub) opts
+subreddit :: forall s e. (Requestable s) => String -> Maybe s -> R e Subreddit
+subreddit sub opts = get (runSrName $ mkSrName sub) opts
 
 -- | A convenience function for when you don't want to provide options.
-subreddit' :: forall e. SrName -> R e Subreddit
-subreddit' sub = get' $ runSrName sub
+subreddit' :: forall e. String -> R e Subreddit
+subreddit' sub = get' $ runSrName $ mkSrName sub
 
 -- | Given a Post, attempt to return the CommentThread of that Post.
 commentThread :: forall s e. (Requestable s) => Post -> Maybe s -> R e CommentThread

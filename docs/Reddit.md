@@ -60,7 +60,7 @@ A convenience function for when you don't care about the response.
 #### `subreddit`
 
 ``` purescript
-subreddit :: forall s e. (Requestable s) => SrName -> Maybe s -> R e Subreddit
+subreddit :: forall s e. (Requestable s) => String -> Maybe s -> R e Subreddit
 ```
 
 Given a subreddit name, attempt to get the front page of that subreddit.
@@ -68,7 +68,7 @@ Given a subreddit name, attempt to get the front page of that subreddit.
 #### `subreddit'`
 
 ``` purescript
-subreddit' :: forall e. SrName -> R e Subreddit
+subreddit' :: forall e. String -> R e Subreddit
 ```
 
 A convenience function for when you don't want to provide options.

@@ -137,11 +137,7 @@ instance postIsForeign :: IsForeign Post where
 newtype Subreddit = Subreddit (Array Post)
 runSubreddit (Subreddit arr) = arr
 
--- TODO: Dont export SrName constructor
 newtype SrName = SrName String
-
-mkSrName :: String -> SrName
-mkSrName = SrName <<< subbify
 
 runSrName :: SrName -> String
 runSrName (SrName s) = s

@@ -116,12 +116,6 @@ newtype SrName
   = SrName String
 ```
 
-#### `mkSrName`
-
-``` purescript
-mkSrName :: String -> SrName
-```
-
 #### `runSrName`
 
 ``` purescript
