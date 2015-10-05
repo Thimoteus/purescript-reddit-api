@@ -12,16 +12,10 @@ type RedditS = Tuple Milliseconds Token
 type REnv e = ReaderT AppInfo (AffReq e)
 ```
 
-#### `RState`
-
-``` purescript
-type RState e = StateT RedditS (REnv e)
-```
-
 #### `R`
 
 ``` purescript
-type R e d = ExceptT Error (RState e) d
+type R e d = StateT RedditS (REnv e) d
 ```
 
 #### `Responsable`

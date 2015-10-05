@@ -18,11 +18,10 @@ import Data.Time (Milliseconds())
 
 import Control.Bind ((>=>))
 import Control.Monad.Eff (Eff())
-import Control.Monad.Aff (Aff(), launchAff)
 import Control.Monad.Eff.Exception (EXCEPTION(), Error(), error)
-import Control.Monad.State.Trans (StateT(..), evalStateT)
-import Control.Monad.Except.Trans (ExceptT(..), runExceptT)
-import Control.Monad.Reader.Trans (ReaderT(..), runReaderT)
+import Control.Monad.State.Trans (StateT(..))
+import Control.Monad.Except.Trans (ExceptT(..))
+import Control.Monad.Reader.Trans (ReaderT(..))
 
 import Node.SimpleRequest (REQUEST(), Verb(..), AffReq())
 
@@ -30,8 +29,7 @@ import Reddit.Util
 
 type RedditS = Tuple Milliseconds Token
 type REnv e = ReaderT AppInfo (AffReq e)
-type RState e = StateT RedditS (REnv e)
-type R e d = ExceptT Error (RState e) d
+type R e d = StateT RedditS (REnv e) d
 
 class Responsable r where
   fromForeign :: Foreign -> Either Error r

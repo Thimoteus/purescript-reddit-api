@@ -3,10 +3,18 @@
 #### `runR`
 
 ``` purescript
-runR :: forall e. R e Unit -> AppInfo -> Eff (err :: EXCEPTION, request :: REQUEST | e) Unit
+runR :: forall e. R e Unit -> AppInfo -> (Error -> Eff (request :: REQUEST | e) Unit) -> (Unit -> Eff (request :: REQUEST | e) Unit) -> Eff (request :: REQUEST | e) Unit
 ```
 
-Run an R computation, given login information.
+Run an R computation, given login information and error/success callbacks.
+
+#### `launchR`
+
+``` purescript
+launchR :: forall e. R e Unit -> AppInfo -> Eff (err :: EXCEPTION, request :: REQUEST | e) Unit
+```
+
+Launch an R computation, given login information, discarding errors.
 
 #### `call`
 
@@ -78,5 +86,7 @@ Given a Post, attempt to return the CommentThread of that Post.
 ``` purescript
 commentThread' :: forall e. Post -> R e CommentThread
 ```
+
+Gets a CommentThread without extra options.
 
 

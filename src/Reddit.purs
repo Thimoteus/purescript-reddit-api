@@ -1,7 +1,7 @@
 module Reddit (
   call, get, get', post, post',
   subreddit, subreddit', commentThread, commentThread',
-  runR
+  runR, launchR
   ) where
 
 import Prelude
@@ -37,14 +37,26 @@ import Control.Apply ((*>))
 import Reddit.Types
 import Reddit.Util
 
--- | Run an R computation, given login information.
-runR :: forall e. R e Unit -> AppInfo -> Eff ( err :: EXCEPTION, request :: REQUEST | e ) Unit
-runR r app = unravelR' where
-  unravelR' = launchAff unravelReader
+-- | Run an R computation, given login information and error/success callbacks.
+runR :: forall e. R e Unit
+               -> AppInfo
+               -> (Error -> Eff ( request :: REQUEST | e ) Unit)
+               -> (Unit -> Eff ( request :: REQUEST | e ) Unit)
+               -> Eff ( request :: REQUEST | e ) Unit
+runR r app err succ = runAff err succ $ unravelR r app
+
+-- | Launch an R computation, given login information, discarding errors.
+launchR :: forall e. R e Unit -> AppInfo -> Eff ( err :: EXCEPTION, request :: REQUEST | e ) Unit
+launchR r = launchAff <<< unravelR r
+
+-- | Unravels the monad transformer stack. The StateT transformer is initialized
+-- | with an authentication token grabbed from Reddit.
+unravelR :: forall e. R e Unit -> AppInfo -> AffReq e Unit
+unravelR r app = unravelR' where
+  unravelR' = unravelReader
   unravelReader = runReaderT getEnv app
   getEnv = getToken app >>= unravelState
-  unravelState = evalStateT unravelExcept
-  unravelExcept = runExceptT r
+  unravelState = evalStateT r
 
 -- | Get an oauth token from Reddit. Returns a Token.
 getToken :: forall e. AppInfo -> REnv e RedditS
@@ -53,7 +65,7 @@ getToken appinfo = getToken' where
   getToken' = do
     res <- liftAff $ request opts msg
     now <- liftEff nowEpochMilliseconds
-    return $ either (const initialState) (Tuple now) $ fromForeign res.body
+    either throwError (return <<< Tuple now) $ fromForeign res.body
 
   msg :: String
   msg = qsify { grant_type: "password"
@@ -71,12 +83,6 @@ getToken appinfo = getToken' where
   optsHeader =
     srHeaderOpts [ Tuple HTTP.ContentType "application/x-www-form-urlencoded"
                  , Tuple HTTP.UserAgent appinfo.userAgent ]
-
-  initialState :: RedditS
-  initialState = Tuple (Milliseconds 0.0) (Token { accessToken: ""
-                                                 , tokenType: ""
-                                                 , expiresIn: 0
-                                                 , scope: "" })
 
 -- | The basic method for interacting with Reddit. You most likely want `get`, `get'`, `post`
 -- | or `post'` for more control than methods like `subreddit`, `commentThread`, etc.
@@ -149,6 +155,7 @@ commentThread :: forall s e. (Requestable s) => Post -> Maybe s -> R e CommentTh
 commentThread (Post o) opts = get endpt opts where
   endpt = subbify o.subreddit ++ "/comments/" ++ o.id
 
+-- | Gets a CommentThread without extra options.
 commentThread' :: forall e. Post -> R e CommentThread
 commentThread' (Post o) = get' endpt where
   endpt = subbify o.subreddit ++ "/comments/" ++ o.id
