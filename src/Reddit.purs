@@ -28,6 +28,7 @@ import Control.Monad.Aff (attempt, later', launchAff, runAff)
 import Control.Monad.Aff.Class (liftAff)
 import qualified Control.Monad.State.Class as State -- (get, put)
 import qualified Control.Monad.Reader.Class as Env -- (ask)
+import Control.Monad.Trans (lift)
 import Control.Monad.Error.Class (throwError)
 import Control.Monad.Except.Trans (runExceptT)
 import Control.Monad.State.Trans (evalStateT)
@@ -57,6 +58,12 @@ unravelR r app = unravelR' where
   unravelReader = runReaderT getEnv app
   getEnv = getToken app >>= unravelState
   unravelState = evalStateT r
+
+login :: forall e. R e Unit
+login = do
+  appInfo <- Env.ask
+  st <- lift $ getToken appInfo
+  State.put st
 
 -- | Get an oauth token from Reddit. Returns a Token.
 getToken :: forall e. AppInfo -> REnv e RedditS
@@ -104,8 +111,12 @@ call req@(RRequest r) = call' where
     State.put w
     appInfo <- Env.ask
     res <- liftAff $ attempt $ request (opts appInfo) msg :: AffReq e Response
-    either throwError (either throwError return <<< fromForeign <<< _.body) res
+    either throwError parseStatusCode res --(either throwError return <<< fromForeign <<< _.body) res
       where
+      parseStatusCode res = case unsafeToInt res.statusCode of
+                                 401 -> login *> continueCall w
+                                 403 -> login *> continueCall w
+                                 _ -> either throwError return $ fromForeign res.body
       msg :: String
       msg = maybe "" querystring r.content
       opts :: AppInfo -> Opts

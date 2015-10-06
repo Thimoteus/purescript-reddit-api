@@ -6,6 +6,12 @@
 unsafeToString :: Foreign -> String
 ```
 
+#### `unsafeToInt`
+
+``` purescript
+unsafeToInt :: Foreign -> Int
+```
+
 #### `qsify`
 
 ``` purescript

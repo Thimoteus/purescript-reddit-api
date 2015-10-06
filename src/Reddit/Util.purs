@@ -12,6 +12,9 @@ import Data.Int (fromNumber)
 unsafeToString :: Foreign -> String
 unsafeToString = unsafeFromForeign
 
+unsafeToInt :: Foreign -> Int
+unsafeToInt = unsafeFromForeign
+
 foreign import qsify :: forall a. a -> String
 
 subbify :: String -> String
