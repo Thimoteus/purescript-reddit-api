@@ -3,17 +3,19 @@ module Test.Main where
 import Prelude
 
 import Reddit
-import Control.Monad.Eff
+import Reddit.Types
 import Control.Monad.Eff.Console
-import Control.Monad.Aff
+import Control.Monad.Eff.Class
 
-foreign import logAnything :: forall a e. a -> Eff (console :: CONSOLE | e) Unit
+testAppInfo = { id: ""
+              , secret: ""
+              , username: ""
+              , password: ""
+              , userAgent: "" }
 
-testAppInfo = { id: "app id"
-              , secret: "app secret"
-              , username: "bot username"
-              , password: "bot password" }
+main = runR myRedditBot testAppInfo print return
 
-main = launchAff do
-  token <- getToken testAppInfo
-  logAnything token
+myRedditBot :: forall e. R e Unit
+myRedditBot = do
+  ps <- subreddit' "purescript"
+  liftEff $ print ps
