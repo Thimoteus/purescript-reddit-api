@@ -185,11 +185,11 @@ commentThreads sr opts = traverse (flip commentThread opts) (runSubreddit sr)
 commentThreads' :: forall e. Subreddit -> R e (Array CommentThread)
 commentThreads' sr = traverse commentThread' (runSubreddit sr)
 
-submitLinkPost :: forall e. LinkPost -> R e StubbyPost
-submitLinkPost = post "/api/submit" 
+submitLinkPost :: forall e. LinkPostRec -> R e StubbyPost
+submitLinkPost = post "/api/submit" <<< LinkPost
 
-submitSelfPost :: forall e. SelfPost -> R e StubbyPost
-submitSelfPost = post "/api/submit"
+submitSelfPost :: forall e. SelfPostRec -> R e StubbyPost
+submitSelfPost = post "/api/submit" <<< SelfPost
 
-reply :: forall e. Reply -> R e Comment
-reply = post "/api/comment"
+reply :: forall e. ReplyRec -> R e Comment
+reply = post "/api/comment" <<< Reply

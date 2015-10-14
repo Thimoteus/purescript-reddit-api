@@ -6,18 +6,22 @@ module Reddit.Types (
   R(),
   AppInfo(),
   Token(),
+  PostRec(),
   Post(),
   Subreddit(),
+  CommentRec(),
   Comment(),
   CommentThread(),
+  StubbyPostRec(),
   StubbyPost(),
   RedditRequest(..),
   SrName(..),
+  LinkPostRec(),
   LinkPost(..),
-  SelfPost(..),
   SelfPostRec(),
-  Reply(..),
+  SelfPost(..),
   ReplyRec(),
+  Reply(..),
   fromForeign,
   querystring,
   runPost,
@@ -91,7 +95,7 @@ newtype Token = Token { accessToken :: String
 runToken (Token t) = t
 
 instance responsableToken :: Responsable Token where
-  fromForeign = either (Left <<< error <<< show) (Right <<< id) <<< readJSON <<< unsafeToString
+  fromForeign = either (Left <<< error <<< show) Right <<< readJSON <<< unsafeToString
 
 instance tokenIsForeign :: IsForeign Token where
   read value = do
@@ -112,9 +116,13 @@ instance showToken :: Show Token where
 instance eqToken :: Eq Token where
   eq = gEq
 
+type RedditRequestRec a = { endpt :: String, method :: Verb, content :: Maybe a}
 newtype RedditRequest a = RRequest { endpt :: String
                                    , method :: Verb
                                    , content :: Maybe a }
+
+runRedditRequest :: forall a. RedditRequest a -> RedditRequestRec a
+runRedditRequest (RRequest r) = r
 
 instance requestableRRequest :: (Requestable a) => Requestable (RedditRequest a) where
   querystring = qsify
@@ -125,6 +133,18 @@ instance requestableString :: Requestable String where
 instance requestableUnit :: Requestable Unit where
   querystring _ = ""
 
+type PostRec = { domain :: String
+               , subreddit :: String
+               , selftext :: String
+               , id :: String
+               , author :: String
+               , subredditId :: String
+               , isSelf :: Boolean
+               , permalink :: String
+               , name :: String
+               , created :: Int
+               , url :: String
+               , title :: String }
 newtype Post = Post { domain :: String
                     , subreddit :: String
                     , selftext :: String
@@ -137,6 +157,8 @@ newtype Post = Post { domain :: String
                     , created :: Int
                     , url :: String
                     , title :: String }
+
+runPost :: Post -> PostRec
 runPost (Post p) = p
 
 derive instance genericPost :: Generic Post
@@ -191,8 +213,18 @@ instance subredditIsForeign :: IsForeign Subreddit where
     return $ Subreddit arr
 
 instance responsableSubreddit :: Responsable Subreddit where
-  fromForeign = either (Left <<< error <<< show) (Right <<< id) <<< readJSON <<< unsafeToString
+  fromForeign = either (Left <<< error <<< show) Right <<< readJSON <<< unsafeToString
 
+type CommentRec = { subredditId :: String
+                  , linkId :: String
+                  , replies :: Maybe (Array Comment)
+                  , id :: String
+                  , author :: String
+                  , parentId :: String
+                  , body :: String
+                  , subreddit :: String
+                  , name :: String
+                  , created :: Int }
 newtype Comment = Comment { subredditId :: String
                           , linkId :: String
                           , replies :: Maybe (Array Comment)
@@ -204,6 +236,7 @@ newtype Comment = Comment { subredditId :: String
                           , name :: String
                           , created :: Int }
 
+runComment :: Comment -> CommentRec
 runComment (Comment o) = o
 
 instance commentIsForeign :: IsForeign Comment where
@@ -279,12 +312,18 @@ instance commentThreadIsForeign :: IsForeign CommentThread where
 instance responsableCommentThread :: Responsable CommentThread where
   fromForeign = either (Left <<< error <<< show) Right <<< readJSON <<< unsafeToString
 
+type LinkPostRec = { resubmit :: Boolean
+                   , sendReplies :: Boolean
+                   , subreddit :: String
+                   , title :: String
+                   , url :: String }
 newtype LinkPost = LinkPost { resubmit :: Boolean
                             , sendReplies :: Boolean
                             , subreddit :: String
                             , title :: String
                             , url :: String }
 
+runLinkPost :: LinkPost -> LinkPostRec
 runLinkPost (LinkPost p) = p
 
 instance requestableLinkPost :: Requestable LinkPost where
@@ -316,10 +355,12 @@ instance requestableSelfPost :: Requestable SelfPost where
                                    , kind: "self"
                                    , api_type: "json" }
 
+type StubbyPostRec = { url :: String, id :: String, name :: String }
 newtype StubbyPost = StubbyPost { url :: String
                                 , id :: String
                                 , name :: String }
 
+runStubbyPost :: StubbyPost -> StubbyPostRec
 runStubbyPost (StubbyPost sp) = sp
 
 postToStubbyPost :: Post -> StubbyPost
@@ -345,7 +386,7 @@ instance stubbyPostIsForeign :: IsForeign StubbyPost where
     return $ StubbyPost { url: url, id: id, name: name }
 
 instance responsableStubbyPost :: Responsable StubbyPost where
-  fromForeign = either (Left <<< error <<< show) (Right <<< id) <<< readJSON <<< unsafeToString
+  fromForeign = either (Left <<< error <<< show) Right <<< readJSON <<< unsafeToString
 
 type ReplyRec = { body :: String, parent :: String }
 newtype Reply = Reply { body :: String, parent :: String }
