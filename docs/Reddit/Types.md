@@ -27,10 +27,13 @@ class Responsable r where
 
 ##### Instances
 ``` purescript
+instance responsableForeign :: Responsable Foreign
 instance responsableUnit :: Responsable Unit
 instance responsableToken :: Responsable Token
 instance responsableSubreddit :: Responsable Subreddit
+instance responsableComment :: Responsable Comment
 instance responsableCommentThread :: Responsable CommentThread
+instance responsableStubbyPost :: Responsable StubbyPost
 ```
 
 #### `Requestable`
@@ -45,6 +48,9 @@ class Requestable s where
 instance requestableRRequest :: (Requestable a) => Requestable (RedditRequest a)
 instance requestableString :: Requestable String
 instance requestableUnit :: Requestable Unit
+instance requestableLinkPost :: Requestable LinkPost
+instance requestableSelfPost :: Requestable SelfPost
+instance requestableReply :: Requestable Reply
 ```
 
 #### `AppInfo`
@@ -57,7 +63,6 @@ type AppInfo = { id :: String, secret :: String, username :: String, password ::
 
 ``` purescript
 newtype Token
-  = Token { accessToken :: String, tokenType :: String, expiresIn :: Int, scope :: String }
 ```
 
 ##### Instances
@@ -85,7 +90,6 @@ instance requestableRRequest :: (Requestable a) => Requestable (RedditRequest a)
 
 ``` purescript
 newtype Post
-  = Post { domain :: String, subreddit :: String, selftext :: String, id :: String, author :: String, subredditId :: String, isSelf :: Boolean, permalink :: String, name :: String, created :: Int, url :: String, title :: String }
 ```
 
 ##### Instances
@@ -99,7 +103,6 @@ instance postIsForeign :: IsForeign Post
 
 ``` purescript
 newtype Subreddit
-  = Subreddit (Array Post)
 ```
 
 ##### Instances
@@ -107,6 +110,12 @@ newtype Subreddit
 instance showSubreddit :: Show Subreddit
 instance subredditIsForeign :: IsForeign Subreddit
 instance responsableSubreddit :: Responsable Subreddit
+```
+
+#### `runSubreddit`
+
+``` purescript
+runSubreddit :: Subreddit -> Array Post
 ```
 
 #### `SrName`
@@ -122,17 +131,10 @@ newtype SrName
 runSrName :: SrName -> String
 ```
 
-#### `mapSubreddit`
-
-``` purescript
-mapSubreddit :: forall a b. (Array Post -> Array Post) -> Subreddit -> Subreddit
-```
-
 #### `Comment`
 
 ``` purescript
 newtype Comment
-  = Comment { subredditId :: String, linkId :: String, replies :: Maybe (Array Comment), id :: String, author :: String, parentId :: String, body :: String, subreddit :: String, name :: String, created :: Int }
 ```
 
 ##### Instances
@@ -140,13 +142,13 @@ newtype Comment
 instance commentIsForeign :: IsForeign Comment
 instance genericComment :: Generic Comment
 instance showComment :: Show Comment
+instance responsableComment :: Responsable Comment
 ```
 
 #### `CommentThread`
 
 ``` purescript
 data CommentThread
-  = CommentThread Post (Array Comment)
 ```
 
 ##### Instances
@@ -155,6 +157,100 @@ instance genericCommentThread :: Generic CommentThread
 instance showCommentThread :: Show CommentThread
 instance commentThreadIsForeign :: IsForeign CommentThread
 instance responsableCommentThread :: Responsable CommentThread
+```
+
+#### `postFromCommentThread`
+
+``` purescript
+postFromCommentThread :: CommentThread -> Post
+```
+
+#### `commentsFromCommentThread`
+
+``` purescript
+commentsFromCommentThread :: CommentThread -> Array Comment
+```
+
+#### `LinkPost`
+
+``` purescript
+newtype LinkPost
+  = LinkPost { resubmit :: Boolean, sendReplies :: Boolean, subreddit :: String, title :: String, url :: String }
+```
+
+##### Instances
+``` purescript
+instance requestableLinkPost :: Requestable LinkPost
+```
+
+#### `SelfPostRec`
+
+``` purescript
+type SelfPostRec = { sendReplies :: Boolean, subreddit :: String, title :: String, body :: String }
+```
+
+#### `SelfPost`
+
+``` purescript
+newtype SelfPost
+  = SelfPost { sendReplies :: Boolean, subreddit :: String, title :: String, body :: String }
+```
+
+##### Instances
+``` purescript
+instance requestableSelfPost :: Requestable SelfPost
+```
+
+#### `runSelfPost`
+
+``` purescript
+runSelfPost :: SelfPost -> SelfPostRec
+```
+
+#### `StubbyPost`
+
+``` purescript
+newtype StubbyPost
+```
+
+##### Instances
+``` purescript
+instance genericStubbyPost :: Generic StubbyPost
+instance showStubbyPost :: Show StubbyPost
+instance stubbyPostIsForeign :: IsForeign StubbyPost
+instance responsableStubbyPost :: Responsable StubbyPost
+```
+
+#### `postToStubbyPost`
+
+``` purescript
+postToStubbyPost :: Post -> StubbyPost
+```
+
+#### `commentThreadToStubbyPost`
+
+``` purescript
+commentThreadToStubbyPost :: CommentThread -> StubbyPost
+```
+
+#### `ReplyRec`
+
+``` purescript
+type ReplyRec = { body :: String, parent :: String }
+```
+
+#### `Reply`
+
+``` purescript
+newtype Reply
+  = Reply { body :: String, parent :: String }
+```
+
+##### Instances
+``` purescript
+instance genericReply :: Generic Reply
+instance showReply :: Show Reply
+instance requestableReply :: Requestable Reply
 ```
 
 

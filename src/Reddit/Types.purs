@@ -1,8 +1,42 @@
-module Reddit.Types where
+module Reddit.Types (
+  Responsable,
+  Requestable,
+  RedditS(),
+  REnv(),
+  R(),
+  AppInfo(),
+  Token(),
+  Post(),
+  Subreddit(),
+  Comment(),
+  CommentThread(),
+  StubbyPost(),
+  RedditRequest(..),
+  SrName(..),
+  LinkPost(..),
+  SelfPost(..),
+  SelfPostRec(),
+  Reply(..),
+  ReplyRec(),
+  fromForeign,
+  querystring,
+  runPost,
+  runToken,
+  runSubreddit,
+  runSrName,
+  runComment,
+  runLinkPost,
+  runSelfPost,
+  runStubbyPost,
+  commentThreadToStubbyPost,
+  postFromCommentThread,
+  commentsFromCommentThread,
+  postToStubbyPost
+  ) where
 
 import Prelude
 
-import Data.Foreign (Foreign())
+import Data.Foreign (Foreign(), F())
 import Data.Foreign.Class (IsForeign, read, readProp)
 import Data.Generic (Generic, gShow, gEq)
 import Data.Tuple (Tuple(..))
@@ -10,7 +44,7 @@ import Data.Maybe (Maybe(..))
 import Data.Either (Either(..), either)
 import Data.Foreign (readArray, isArray, readString)
 import Data.Foreign.Class (readJSON)
-import Data.Foreign.Index (prop)
+import Data.Foreign.Index (prop, hasProperty)
 import Data.Traversable (sequence)
 import Data.Array (take, filter)
 import Data.Array.Unsafe (unsafeIndex)
@@ -36,6 +70,9 @@ class Responsable r where
 
 class Requestable s where
   querystring :: s -> String
+
+instance responsableForeign :: Responsable Foreign where
+  fromForeign = Right
 
 instance responsableUnit :: Responsable Unit where
   fromForeign = const $ Right unit
@@ -100,7 +137,7 @@ newtype Post = Post { domain :: String
                     , created :: Int
                     , url :: String
                     , title :: String }
-runPost (Post o) = o
+runPost (Post p) = p
 
 derive instance genericPost :: Generic Post
 
@@ -135,6 +172,8 @@ instance postIsForeign :: IsForeign Post where
                   , title: title }
 
 newtype Subreddit = Subreddit (Array Post)
+
+runSubreddit :: Subreddit -> Array Post
 runSubreddit (Subreddit arr) = arr
 
 newtype SrName = SrName String
@@ -154,9 +193,6 @@ instance subredditIsForeign :: IsForeign Subreddit where
 instance responsableSubreddit :: Responsable Subreddit where
   fromForeign = either (Left <<< error <<< show) (Right <<< id) <<< readJSON <<< unsafeToString
 
-mapSubreddit :: forall a b. (Array Post -> Array Post) -> Subreddit -> Subreddit
-mapSubreddit f (Subreddit arr) = Subreddit (f arr)
-
 newtype Comment = Comment { subredditId :: String
                           , linkId :: String
                           , replies :: Maybe (Array Comment)
@@ -168,8 +204,19 @@ newtype Comment = Comment { subredditId :: String
                           , name :: String
                           , created :: Int }
 
+runComment (Comment o) = o
+
 instance commentIsForeign :: IsForeign Comment where
-  read value = do
+  read value = if hasProperty "json" value
+                  then badComment value
+                  else goodComment value
+
+badComment :: Foreign -> F Comment
+badComment value =
+  flip unsafeIndex 0 <$> (prop "json" >=> prop "data" >=> prop "things" >=> readArray) value >>= goodComment
+
+goodComment :: Foreign -> F Comment
+goodComment value = do
     c <- prop "data" value
     subreddit_id <- readProp "subreddit_id" c
     link_id <- readProp "link_id" c
@@ -200,7 +247,16 @@ derive instance genericComment :: Generic Comment
 instance showComment :: Show Comment where
   show = gShow
 
+instance responsableComment :: Responsable Comment where
+  fromForeign = either (Left <<< error <<< show) Right <<< readJSON <<< unsafeToString
+
 data CommentThread = CommentThread Post (Array Comment)
+
+postFromCommentThread :: CommentThread -> Post
+postFromCommentThread (CommentThread p _) = p
+
+commentsFromCommentThread :: CommentThread -> Array Comment
+commentsFromCommentThread (CommentThread _ arr) = arr
 
 derive instance genericCommentThread :: Generic CommentThread
 
@@ -221,4 +277,89 @@ instance commentThreadIsForeign :: IsForeign CommentThread where
         isComment f = either (const false) (== "t1") $ prop "kind" f >>= readString
 
 instance responsableCommentThread :: Responsable CommentThread where
+  fromForeign = either (Left <<< error <<< show) Right <<< readJSON <<< unsafeToString
+
+newtype LinkPost = LinkPost { resubmit :: Boolean
+                            , sendReplies :: Boolean
+                            , subreddit :: String
+                            , title :: String
+                            , url :: String }
+
+runLinkPost (LinkPost p) = p
+
+instance requestableLinkPost :: Requestable LinkPost where
+  querystring (LinkPost o) = qsify { resubmit: o.resubmit
+                                   , sendreplies: o.sendReplies
+                                   , sr: o.subreddit
+                                   , title: o.title
+                                   , url: o.url
+                                   , kind: "link"
+                                   , api_type: "json" }
+
+type SelfPostRec = { sendReplies :: Boolean
+                   , subreddit :: String
+                   , title :: String
+                   , body :: String }
+newtype SelfPost = SelfPost { sendReplies :: Boolean
+                            , subreddit :: String
+                            , title :: String
+                            , body :: String }
+
+runSelfPost :: SelfPost -> SelfPostRec
+runSelfPost (SelfPost p) = p
+
+instance requestableSelfPost :: Requestable SelfPost where
+  querystring (SelfPost o) = qsify { sendreplies: o.sendReplies
+                                   , sr: o.subreddit
+                                   , title: o.title
+                                   , text: o.body
+                                   , kind: "self"
+                                   , api_type: "json" }
+
+newtype StubbyPost = StubbyPost { url :: String
+                                , id :: String
+                                , name :: String }
+
+runStubbyPost (StubbyPost sp) = sp
+
+postToStubbyPost :: Post -> StubbyPost
+postToStubbyPost (Post p) =
+  StubbyPost { url: p.url
+             , id: p.id
+             , name: p.name }
+
+commentThreadToStubbyPost :: CommentThread -> StubbyPost
+commentThreadToStubbyPost = postToStubbyPost <<< postFromCommentThread
+
+derive instance genericStubbyPost :: Generic StubbyPost
+
+instance showStubbyPost :: Show StubbyPost where
+  show = gShow
+
+instance stubbyPostIsForeign :: IsForeign StubbyPost where
+  read value = do
+    d <- (prop "json" >=> prop "data") value
+    url <- readProp "url" d
+    id <- readProp "id" d
+    name <- readProp "name" d
+    return $ StubbyPost { url: url, id: id, name: name }
+
+instance responsableStubbyPost :: Responsable StubbyPost where
   fromForeign = either (Left <<< error <<< show) (Right <<< id) <<< readJSON <<< unsafeToString
+
+type ReplyRec = { body :: String, parent :: String }
+newtype Reply = Reply { body :: String, parent :: String }
+
+runReply :: Reply -> ReplyRec
+runReply (Reply r) = r
+
+derive instance genericReply :: Generic Reply
+
+instance showReply :: Show Reply where
+  show = gShow
+
+instance requestableReply :: Requestable Reply where
+  querystring (Reply r) =
+    qsify { api_type: "json"
+          , text: r.body
+          , thing_id: r.parent }

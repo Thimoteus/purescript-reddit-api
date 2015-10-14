@@ -31,17 +31,11 @@ or `post'` for more control than methods like `subreddit`, `commentThread`, etc.
 get :: forall s e d. (Responsable d, Requestable s) => String -> Maybe s -> R e d
 ```
 
-A convenience function for making `GET` requests. The response must be an instance of
-the `Responsable` typeclass, and any options passed must be an instance of the
-`Requestable` typeclass.
-
 #### `get'`
 
 ``` purescript
 get' :: forall e d. (Responsable d) => String -> R e d
 ```
-
-A convenience function when you don't want to provide options.
 
 #### `post`
 
@@ -49,13 +43,14 @@ A convenience function when you don't want to provide options.
 post :: forall s e d. (Responsable d, Requestable s) => String -> s -> R e d
 ```
 
+A convenience function for making `POST` requests. If you don't care about
+the response, consider using `post'`.
+
 #### `post'`
 
 ``` purescript
 post' :: forall s e. (Requestable s) => String -> s -> R e Unit
 ```
-
-A convenience function for when you don't care about the response.
 
 #### `subreddit`
 
@@ -63,15 +58,11 @@ A convenience function for when you don't care about the response.
 subreddit :: forall s e. (Requestable s) => String -> Maybe s -> R e Subreddit
 ```
 
-Given a subreddit name, attempt to get the front page of that subreddit.
-
 #### `subreddit'`
 
 ``` purescript
 subreddit' :: forall e. String -> R e Subreddit
 ```
-
-A convenience function for when you don't want to provide options.
 
 #### `commentThread`
 
@@ -79,14 +70,40 @@ A convenience function for when you don't want to provide options.
 commentThread :: forall s e. (Requestable s) => Post -> Maybe s -> R e CommentThread
 ```
 
-Given a Post, attempt to return the CommentThread of that Post.
-
 #### `commentThread'`
 
 ``` purescript
 commentThread' :: forall e. Post -> R e CommentThread
 ```
 
-Gets a CommentThread without extra options.
+#### `commentThreads`
+
+``` purescript
+commentThreads :: forall s e. (Requestable s) => Subreddit -> Maybe s -> R e (Array CommentThread)
+```
+
+#### `commentThreads'`
+
+``` purescript
+commentThreads' :: forall e. Subreddit -> R e (Array CommentThread)
+```
+
+#### `submitLinkPost`
+
+``` purescript
+submitLinkPost :: forall e. LinkPost -> R e StubbyPost
+```
+
+#### `submitSelfPost`
+
+``` purescript
+submitSelfPost :: forall e. SelfPost -> R e StubbyPost
+```
+
+#### `reply`
+
+``` purescript
+reply :: forall e. Reply -> R e Comment
+```
 
 

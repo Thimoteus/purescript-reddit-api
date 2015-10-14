@@ -1,7 +1,20 @@
 module Reddit (
-  call, get, get', post, post',
-  subreddit, subreddit', commentThread, commentThread',
-  runR, launchR
+  call,
+  get,
+  get',
+  post,
+  post',
+  subreddit,
+  subreddit',
+  commentThread,
+  commentThread',
+  commentThreads,
+  commentThreads',
+  submitLinkPost,
+  submitSelfPost,
+  reply,
+  runR,
+  launchR
   ) where
 
 import Prelude
@@ -19,11 +32,11 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Either (Either(..), either)
 import Data.Date (nowEpochMilliseconds)
 import Data.Time (Milliseconds(..))
+import Data.Traversable (traverse)
 
 import Control.Monad.Eff (Eff())
 import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Exception (EXCEPTION(), Error())
---import Control.Monad.Eff.Console (print)
 import Control.Monad.Aff (attempt, later', launchAff, runAff)
 import Control.Monad.Aff.Class (liftAff)
 import qualified Control.Monad.State.Class as State -- (get, put)
@@ -65,7 +78,6 @@ login = do
   st <- lift $ getToken appInfo
   State.put st
 
--- | Get an oauth token from Reddit. Returns a Token.
 getToken :: forall e. AppInfo -> REnv e RedditS
 getToken appinfo = getToken' where
 
@@ -111,7 +123,7 @@ call req@(RRequest r) = call' where
     State.put w
     appInfo <- Env.ask
     res <- liftAff $ attempt $ request (opts appInfo) msg :: AffReq e Response
-    either throwError parseStatusCode res --(either throwError return <<< fromForeign <<< _.body) res
+    either throwError parseStatusCode res
       where
       parseStatusCode res = case unsafeToInt res.statusCode of
                                  401 -> login *> continueCall w
@@ -130,46 +142,54 @@ call req@(RRequest r) = call' where
         , Tuple HTTP.ContentType "application/x-www-form-urlencoded"
         , Tuple HTTP.Authorization $ append "bearer " $ _.accessToken $ runToken $ snd w ]
 
--- | A convenience function for making `GET` requests. The response must be an instance of
--- | the `Responsable` typeclass, and any options passed must be an instance of the
--- | `Requestable` typeclass.
 get :: forall s e d. (Responsable d, Requestable s) => String -> Maybe s -> R e d
 get endpt opts = call $ RRequest { endpt: endpt ++ ".json"
                                  , method: GET
                                  , content: opts }
 
--- | A convenience function when you don't want to provide options.
 get' :: forall e d. (Responsable d) => String -> R e d
-get' endpt = get endpt $ Just unit --(Nothing :: Maybe Unit)
+get' endpt = get endpt $ Just unit
 
--- | A convenience function for making `POST` requests. If you care about the response,
--- | it must implement the `Responsable` typeclass.
+-- | A convenience function for making `POST` requests. If you don't care about
+-- | the response, consider using `post'`.
 post :: forall s e d. (Responsable d, Requestable s) => String -> s -> R e d
 post endpt content = call $ RRequest { endpt: endpt
                                      , method: POST
                                      , content: Just content }
 
--- | A convenience function for when you don't care about the response.
 post' :: forall s e. (Requestable s) => String -> s -> R e Unit
 post' = post
 
 mkSrName :: String -> SrName
 mkSrName = SrName <<< subbify
 
--- | Given a subreddit name, attempt to get the front page of that subreddit.
 subreddit :: forall s e. (Requestable s) => String -> Maybe s -> R e Subreddit
 subreddit sub opts = get (runSrName $ mkSrName sub) opts
 
--- | A convenience function for when you don't want to provide options.
 subreddit' :: forall e. String -> R e Subreddit
 subreddit' sub = get' $ runSrName $ mkSrName sub
 
--- | Given a Post, attempt to return the CommentThread of that Post.
 commentThread :: forall s e. (Requestable s) => Post -> Maybe s -> R e CommentThread
-commentThread (Post o) opts = get endpt opts where
+commentThread p opts = get endpt opts where
   endpt = subbify o.subreddit ++ "/comments/" ++ o.id
+  o = runPost p
 
--- | Gets a CommentThread without extra options.
 commentThread' :: forall e. Post -> R e CommentThread
-commentThread' (Post o) = get' endpt where
+commentThread' p = get' endpt where
   endpt = subbify o.subreddit ++ "/comments/" ++ o.id
+  o = runPost p
+
+commentThreads :: forall s e. (Requestable s) => Subreddit -> Maybe s -> R e (Array CommentThread)
+commentThreads sr opts = traverse (flip commentThread opts) (runSubreddit sr)
+
+commentThreads' :: forall e. Subreddit -> R e (Array CommentThread)
+commentThreads' sr = traverse commentThread' (runSubreddit sr)
+
+submitLinkPost :: forall e. LinkPost -> R e StubbyPost
+submitLinkPost = post "/api/submit" 
+
+submitSelfPost :: forall e. SelfPost -> R e StubbyPost
+submitSelfPost = post "/api/submit"
+
+reply :: forall e. Reply -> R e Comment
+reply = post "/api/comment"
