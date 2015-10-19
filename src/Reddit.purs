@@ -1,4 +1,6 @@
 module Reddit (
+  runR,
+  launchR,
   call,
   get,
   get',
@@ -13,8 +15,10 @@ module Reddit (
   submitLinkPost,
   submitSelfPost,
   reply,
-  runR,
-  launchR
+  deleteComment,
+  deletePost,
+  editSelfPost,
+  editComment
   ) where
 
 import Prelude
@@ -27,6 +31,8 @@ import Node.SimpleRequest.Secure (request)
 import qualified Network.HTTP as HTTP
 
 import Data.Tuple (Tuple(..), fst, snd)
+import Data.List (List(..), (:))
+import Data.StrMap (singleton, fromList)
 import Data.Options ((:=))
 import Data.Maybe (Maybe(..), maybe)
 import Data.Either (Either(..), either)
@@ -160,14 +166,11 @@ post endpt content = call $ RRequest { endpt: endpt
 post' :: forall s e. (Requestable s) => String -> s -> R e Unit
 post' = post
 
-mkSrName :: String -> SrName
-mkSrName = SrName <<< subbify
-
 subreddit :: forall s e. (Requestable s) => String -> Maybe s -> R e Subreddit
-subreddit sub opts = get (runSrName $ mkSrName sub) opts
+subreddit sub opts = get (subbify sub) opts
 
 subreddit' :: forall e. String -> R e Subreddit
-subreddit' sub = get' $ runSrName $ mkSrName sub
+subreddit' sub = get' $ subbify sub
 
 commentThread :: forall s e. (Requestable s) => Post -> Maybe s -> R e CommentThread
 commentThread p opts = get endpt opts where
@@ -193,3 +196,28 @@ submitSelfPost = post "/api/submit" <<< SelfPost
 
 reply :: forall e. ReplyRec -> R e Comment
 reply = post "/api/comment" <<< Reply
+
+deleteComment :: forall e. Comment -> R e Unit
+deleteComment c = post "/api/del" $ singleton "id" $ _.name $ runComment c
+
+-- | `deletePost` and `editSelfPost` require a StubbyPost instead of a Post
+-- | because a StubbyPost is returned immediately when creating a post, and
+-- | any Post can be turned into a StubbyPost with `postToStubbyPost`.
+deletePost :: forall e. StubbyPost -> R e Unit
+deletePost p = post "/api/del" $ singleton "id" $ _.name $ runStubbyPost p
+
+editSelfPost :: forall e. StubbyPost -> String -> R e Unit
+editSelfPost p msg =
+  let opts = fromList $ Tuple "api_type" "json"
+                      : Tuple "text" msg
+                      : Tuple "thing_id" (_.name $ runStubbyPost p)
+                      : Nil
+   in post "/api/editusertext" opts
+
+editComment :: forall e. Comment -> String -> R e Unit
+editComment c msg =
+  let opts = fromList $ Tuple "api_type" "json"
+                      : Tuple "text" msg
+                      : Tuple "thing_id" (_.name $ runComment c)
+                      : Nil
+   in post "/api/editusertext" opts

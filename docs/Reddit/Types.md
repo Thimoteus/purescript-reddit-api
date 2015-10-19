@@ -86,6 +86,12 @@ newtype RedditRequest a
 instance requestableRRequest :: (Requestable a) => Requestable (RedditRequest a)
 ```
 
+#### `PostRec`
+
+``` purescript
+type PostRec = { domain :: String, subreddit :: String, selftext :: String, id :: String, author :: String, subredditId :: String, isSelf :: Boolean, permalink :: String, name :: String, created :: Int, url :: String, title :: String }
+```
+
 #### `Post`
 
 ``` purescript
@@ -97,6 +103,12 @@ newtype Post
 instance genericPost :: Generic Post
 instance showPost :: Show Post
 instance postIsForeign :: IsForeign Post
+```
+
+#### `runPost`
+
+``` purescript
+runPost :: Post -> PostRec
 ```
 
 #### `Subreddit`
@@ -131,6 +143,12 @@ newtype SrName
 runSrName :: SrName -> String
 ```
 
+#### `CommentRec`
+
+``` purescript
+type CommentRec = { subredditId :: String, linkId :: String, replies :: Maybe (Array Comment), id :: String, author :: String, parentId :: String, body :: String, subreddit :: String, name :: String, created :: Int }
+```
+
 #### `Comment`
 
 ``` purescript
@@ -143,6 +161,12 @@ instance commentIsForeign :: IsForeign Comment
 instance genericComment :: Generic Comment
 instance showComment :: Show Comment
 instance responsableComment :: Responsable Comment
+```
+
+#### `runComment`
+
+``` purescript
+runComment :: Comment -> CommentRec
 ```
 
 #### `CommentThread`
@@ -171,6 +195,12 @@ postFromCommentThread :: CommentThread -> Post
 commentsFromCommentThread :: CommentThread -> Array Comment
 ```
 
+#### `LinkPostRec`
+
+``` purescript
+type LinkPostRec = { resubmit :: Boolean, sendReplies :: Boolean, subreddit :: String, title :: String, url :: String }
+```
+
 #### `LinkPost`
 
 ``` purescript
@@ -181,6 +211,12 @@ newtype LinkPost
 ##### Instances
 ``` purescript
 instance requestableLinkPost :: Requestable LinkPost
+```
+
+#### `runLinkPost`
+
+``` purescript
+runLinkPost :: LinkPost -> LinkPostRec
 ```
 
 #### `SelfPostRec`
@@ -207,6 +243,12 @@ instance requestableSelfPost :: Requestable SelfPost
 runSelfPost :: SelfPost -> SelfPostRec
 ```
 
+#### `StubbyPostRec`
+
+``` purescript
+type StubbyPostRec = { url :: String, id :: String, name :: String }
+```
+
 #### `StubbyPost`
 
 ``` purescript
@@ -219,6 +261,12 @@ instance genericStubbyPost :: Generic StubbyPost
 instance showStubbyPost :: Show StubbyPost
 instance stubbyPostIsForeign :: IsForeign StubbyPost
 instance responsableStubbyPost :: Responsable StubbyPost
+```
+
+#### `runStubbyPost`
+
+``` purescript
+runStubbyPost :: StubbyPost -> StubbyPostRec
 ```
 
 #### `postToStubbyPost`

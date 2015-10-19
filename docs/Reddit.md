@@ -91,19 +91,19 @@ commentThreads' :: forall e. Subreddit -> R e (Array CommentThread)
 #### `submitLinkPost`
 
 ``` purescript
-submitLinkPost :: forall e. LinkPost -> R e StubbyPost
+submitLinkPost :: forall e. LinkPostRec -> R e StubbyPost
 ```
 
 #### `submitSelfPost`
 
 ``` purescript
-submitSelfPost :: forall e. SelfPost -> R e StubbyPost
+submitSelfPost :: forall e. SelfPostRec -> R e StubbyPost
 ```
 
 #### `reply`
 
 ``` purescript
-reply :: forall e. Reply -> R e Comment
+reply :: forall e. ReplyRec -> R e Comment
 ```
 
 
