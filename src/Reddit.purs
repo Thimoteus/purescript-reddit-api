@@ -126,14 +126,13 @@ call req@(RRequest r) = call' where
   waitAndCall w z = liftAff (later' w $ pure unit :: AffReq e Unit) *> call z
 
   continueCall w = do
-    State.put w
     appInfo <- Env.ask
     res <- liftAff $ attempt $ request (opts appInfo) msg :: AffReq e Response
     either throwError parseStatusCode res
       where
       parseStatusCode res = case unsafeToInt res.statusCode of
-                                 401 -> login *> continueCall w
-                                 403 -> login *> continueCall w
+                                 401 -> login *> State.get >>= continueCall
+                                 403 -> login *> State.get >>= continueCall
                                  _ -> either throwError return $ fromForeign res.body
       msg :: String
       msg = maybe "" querystring r.content
@@ -148,11 +147,14 @@ call req@(RRequest r) = call' where
         , Tuple HTTP.ContentType "application/x-www-form-urlencoded"
         , Tuple HTTP.Authorization $ append "bearer " $ _.accessToken $ runToken $ snd w ]
 
+-- | A convenience method for making `GET` requests. Check the reddit API
+-- | documentation for which API calls use `GET`.
 get :: forall s e d. (Responsable d, Requestable s) => String -> Maybe s -> R e d
 get endpt opts = call $ RRequest { endpt: endpt ++ ".json"
                                  , method: GET
                                  , content: opts }
 
+-- | Like `get`, but without any options passed.
 get' :: forall e d. (Responsable d) => String -> R e d
 get' endpt = get endpt $ Just unit
 
@@ -166,12 +168,15 @@ post endpt content = call $ RRequest { endpt: endpt
 post' :: forall s e. (Requestable s) => String -> s -> R e Unit
 post' = post
 
+-- | Subreddits are newtypes around an array of Posts.
 subreddit :: forall s e. (Requestable s) => String -> Maybe s -> R e Subreddit
 subreddit sub opts = get (subbify sub) opts
 
 subreddit' :: forall e. String -> R e Subreddit
 subreddit' sub = get' $ subbify sub
 
+-- | CommentThreads are a tuple of a Post and an array of Comments, representing
+-- | the selftext post/linkpost and comment tree.
 commentThread :: forall s e. (Requestable s) => Post -> Maybe s -> R e CommentThread
 commentThread p opts = get endpt opts where
   endpt = subbify o.subreddit ++ "/comments/" ++ o.id

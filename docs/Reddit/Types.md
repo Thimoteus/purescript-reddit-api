@@ -6,6 +6,8 @@
 type RedditS = Tuple Milliseconds Token
 ```
 
+The all-important R monad.
+
 #### `REnv`
 
 ``` purescript
@@ -24,6 +26,8 @@ type R e d = StateT RedditS (REnv e) d
 class Responsable r where
   fromForeign :: Foreign -> Either Error r
 ```
+
+Class declarations, basic instances.
 
 ##### Instances
 ``` purescript
@@ -45,6 +49,7 @@ class Requestable s where
 
 ##### Instances
 ``` purescript
+instance requestableStrMapString :: Requestable (StrMap String)
 instance requestableRRequest :: (Requestable a) => Requestable (RedditRequest a)
 instance requestableString :: Requestable String
 instance requestableUnit :: Requestable Unit
@@ -59,6 +64,8 @@ instance requestableReply :: Requestable Reply
 type AppInfo = { id :: String, secret :: String, username :: String, password :: String, userAgent :: String }
 ```
 
+Data types
+
 #### `Token`
 
 ``` purescript
@@ -68,10 +75,10 @@ newtype Token
 ##### Instances
 ``` purescript
 instance responsableToken :: Responsable Token
-instance tokenIsForeign :: IsForeign Token
 instance genericToken :: Generic Token
 instance showToken :: Show Token
 instance eqToken :: Eq Token
+instance tokenIsForeign :: IsForeign Token
 ```
 
 #### `RedditRequest`
@@ -105,44 +112,6 @@ instance showPost :: Show Post
 instance postIsForeign :: IsForeign Post
 ```
 
-#### `runPost`
-
-``` purescript
-runPost :: Post -> PostRec
-```
-
-#### `Subreddit`
-
-``` purescript
-newtype Subreddit
-```
-
-##### Instances
-``` purescript
-instance showSubreddit :: Show Subreddit
-instance subredditIsForeign :: IsForeign Subreddit
-instance responsableSubreddit :: Responsable Subreddit
-```
-
-#### `runSubreddit`
-
-``` purescript
-runSubreddit :: Subreddit -> Array Post
-```
-
-#### `SrName`
-
-``` purescript
-newtype SrName
-  = SrName String
-```
-
-#### `runSrName`
-
-``` purescript
-runSrName :: SrName -> String
-```
-
 #### `CommentRec`
 
 ``` purescript
@@ -157,16 +126,11 @@ newtype Comment
 
 ##### Instances
 ``` purescript
-instance commentIsForeign :: IsForeign Comment
+instance responsableComment :: Responsable Comment
 instance genericComment :: Generic Comment
 instance showComment :: Show Comment
-instance responsableComment :: Responsable Comment
-```
-
-#### `runComment`
-
-``` purescript
-runComment :: Comment -> CommentRec
+instance eqComment :: Eq Comment
+instance commentIsForeign :: IsForeign Comment
 ```
 
 #### `CommentThread`
@@ -177,22 +141,23 @@ data CommentThread
 
 ##### Instances
 ``` purescript
+instance responsableCommentThread :: Responsable CommentThread
 instance genericCommentThread :: Generic CommentThread
 instance showCommentThread :: Show CommentThread
 instance commentThreadIsForeign :: IsForeign CommentThread
-instance responsableCommentThread :: Responsable CommentThread
 ```
 
-#### `postFromCommentThread`
+#### `Subreddit`
 
 ``` purescript
-postFromCommentThread :: CommentThread -> Post
+newtype Subreddit
 ```
 
-#### `commentsFromCommentThread`
-
+##### Instances
 ``` purescript
-commentsFromCommentThread :: CommentThread -> Array Comment
+instance responsableSubreddit :: Responsable Subreddit
+instance showSubreddit :: Show Subreddit
+instance subredditIsForeign :: IsForeign Subreddit
 ```
 
 #### `LinkPostRec`
@@ -213,12 +178,6 @@ newtype LinkPost
 instance requestableLinkPost :: Requestable LinkPost
 ```
 
-#### `runLinkPost`
-
-``` purescript
-runLinkPost :: LinkPost -> LinkPostRec
-```
-
 #### `SelfPostRec`
 
 ``` purescript
@@ -237,12 +196,6 @@ newtype SelfPost
 instance requestableSelfPost :: Requestable SelfPost
 ```
 
-#### `runSelfPost`
-
-``` purescript
-runSelfPost :: SelfPost -> SelfPostRec
-```
-
 #### `StubbyPostRec`
 
 ``` purescript
@@ -257,28 +210,10 @@ newtype StubbyPost
 
 ##### Instances
 ``` purescript
+instance responsableStubbyPost :: Responsable StubbyPost
 instance genericStubbyPost :: Generic StubbyPost
 instance showStubbyPost :: Show StubbyPost
 instance stubbyPostIsForeign :: IsForeign StubbyPost
-instance responsableStubbyPost :: Responsable StubbyPost
-```
-
-#### `runStubbyPost`
-
-``` purescript
-runStubbyPost :: StubbyPost -> StubbyPostRec
-```
-
-#### `postToStubbyPost`
-
-``` purescript
-postToStubbyPost :: Post -> StubbyPost
-```
-
-#### `commentThreadToStubbyPost`
-
-``` purescript
-commentThreadToStubbyPost :: CommentThread -> StubbyPost
 ```
 
 #### `ReplyRec`
@@ -296,9 +231,69 @@ newtype Reply
 
 ##### Instances
 ``` purescript
+instance requestableReply :: Requestable Reply
 instance genericReply :: Generic Reply
 instance showReply :: Show Reply
-instance requestableReply :: Requestable Reply
+```
+
+#### `runPost`
+
+``` purescript
+runPost :: Post -> PostRec
+```
+
+#### `runSubreddit`
+
+``` purescript
+runSubreddit :: Subreddit -> Array Post
+```
+
+#### `runComment`
+
+``` purescript
+runComment :: Comment -> CommentRec
+```
+
+#### `runLinkPost`
+
+``` purescript
+runLinkPost :: LinkPost -> LinkPostRec
+```
+
+#### `runSelfPost`
+
+``` purescript
+runSelfPost :: SelfPost -> SelfPostRec
+```
+
+#### `runStubbyPost`
+
+``` purescript
+runStubbyPost :: StubbyPost -> StubbyPostRec
+```
+
+#### `postFromCommentThread`
+
+``` purescript
+postFromCommentThread :: CommentThread -> Post
+```
+
+#### `commentsFromCommentThread`
+
+``` purescript
+commentsFromCommentThread :: CommentThread -> Array Comment
+```
+
+#### `postToStubbyPost`
+
+``` purescript
+postToStubbyPost :: Post -> StubbyPost
+```
+
+#### `commentThreadToStubbyPost`
+
+``` purescript
+commentThreadToStubbyPost :: CommentThread -> StubbyPost
 ```
 
 
