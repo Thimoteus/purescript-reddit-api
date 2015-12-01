@@ -3,7 +3,7 @@
 #### `runR`
 
 ``` purescript
-runR :: forall e. R e Unit -> AppInfo -> (Error -> Eff (request :: REQUEST | e) Unit) -> (Unit -> Eff (request :: REQUEST | e) Unit) -> Eff (request :: REQUEST | e) Unit
+runR :: forall e. R e Unit -> AppInfo -> (Error -> Eff (now :: Now, request :: REQUEST | e) Unit) -> (Unit -> Eff (now :: Now, request :: REQUEST | e) Unit) -> Eff (now :: Now, request :: REQUEST | e) Unit
 ```
 
 Run an R computation, given login information and error/success callbacks.
@@ -11,7 +11,7 @@ Run an R computation, given login information and error/success callbacks.
 #### `launchR`
 
 ``` purescript
-launchR :: forall e. R e Unit -> AppInfo -> Eff (err :: EXCEPTION, request :: REQUEST | e) Unit
+launchR :: forall e. R e Unit -> AppInfo -> Eff (now :: Now, err :: EXCEPTION, request :: REQUEST | e) Unit
 ```
 
 Launch an R computation, given login information, discarding errors.

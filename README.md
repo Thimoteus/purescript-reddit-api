@@ -8,14 +8,14 @@
 
 Everything runs in the `R` monad, which is just a monad transformer stack around
 `StateT`, `ReaderT` and `Aff`. Rate-limiting and logging in via OAuth are
-handled automatically.
+handled automatically. So far, only "script" type apps are supported.
 
 As an example:
 
 ```purescript
 main = runR myRedditBot testAppInfo print return
 
-myRedditBot :: forall e. R e Unit
+myRedditBot :: forall e. R (console :: CONSOLE | e) Unit
 myRedditBot = do
   ps <- subreddit' "purescript"
   liftEff $ print ps

@@ -1,12 +1,18 @@
 ## Module Reddit.Types
 
+#### `AffReq`
+
+``` purescript
+type AffReq e = AffReq (now :: Now | e)
+```
+
+The all-important R monad.
+
 #### `RedditS`
 
 ``` purescript
 type RedditS = Tuple Milliseconds Token
 ```
-
-The all-important R monad.
 
 #### `REnv`
 
@@ -31,13 +37,13 @@ Class declarations, basic instances.
 
 ##### Instances
 ``` purescript
-instance responsableForeign :: Responsable Foreign
-instance responsableUnit :: Responsable Unit
-instance responsableToken :: Responsable Token
-instance responsableSubreddit :: Responsable Subreddit
-instance responsableComment :: Responsable Comment
-instance responsableCommentThread :: Responsable CommentThread
-instance responsableStubbyPost :: Responsable StubbyPost
+Responsable Foreign
+Responsable Unit
+Responsable Token
+Responsable Subreddit
+Responsable Comment
+Responsable CommentThread
+Responsable StubbyPost
 ```
 
 #### `Requestable`
@@ -49,13 +55,13 @@ class Requestable s where
 
 ##### Instances
 ``` purescript
-instance requestableStrMapString :: Requestable (StrMap String)
-instance requestableRRequest :: (Requestable a) => Requestable (RedditRequest a)
-instance requestableString :: Requestable String
-instance requestableUnit :: Requestable Unit
-instance requestableLinkPost :: Requestable LinkPost
-instance requestableSelfPost :: Requestable SelfPost
-instance requestableReply :: Requestable Reply
+Requestable (StrMap String)
+(Requestable a) => Requestable (RedditRequest a)
+Requestable String
+Requestable Unit
+Requestable LinkPost
+Requestable SelfPost
+Requestable Reply
 ```
 
 #### `AppInfo`
@@ -74,11 +80,11 @@ newtype Token
 
 ##### Instances
 ``` purescript
-instance responsableToken :: Responsable Token
-instance genericToken :: Generic Token
-instance showToken :: Show Token
-instance eqToken :: Eq Token
-instance tokenIsForeign :: IsForeign Token
+Responsable Token
+Generic Token
+Show Token
+Eq Token
+IsForeign Token
 ```
 
 #### `RedditRequest`
@@ -90,7 +96,7 @@ newtype RedditRequest a
 
 ##### Instances
 ``` purescript
-instance requestableRRequest :: (Requestable a) => Requestable (RedditRequest a)
+(Requestable a) => Requestable (RedditRequest a)
 ```
 
 #### `PostRec`
@@ -107,9 +113,9 @@ newtype Post
 
 ##### Instances
 ``` purescript
-instance genericPost :: Generic Post
-instance showPost :: Show Post
-instance postIsForeign :: IsForeign Post
+Generic Post
+Show Post
+IsForeign Post
 ```
 
 #### `CommentRec`
@@ -126,11 +132,11 @@ newtype Comment
 
 ##### Instances
 ``` purescript
-instance responsableComment :: Responsable Comment
-instance genericComment :: Generic Comment
-instance showComment :: Show Comment
-instance eqComment :: Eq Comment
-instance commentIsForeign :: IsForeign Comment
+Responsable Comment
+Generic Comment
+Show Comment
+Eq Comment
+IsForeign Comment
 ```
 
 #### `CommentThread`
@@ -141,10 +147,10 @@ data CommentThread
 
 ##### Instances
 ``` purescript
-instance responsableCommentThread :: Responsable CommentThread
-instance genericCommentThread :: Generic CommentThread
-instance showCommentThread :: Show CommentThread
-instance commentThreadIsForeign :: IsForeign CommentThread
+Responsable CommentThread
+Generic CommentThread
+Show CommentThread
+IsForeign CommentThread
 ```
 
 #### `Subreddit`
@@ -155,9 +161,9 @@ newtype Subreddit
 
 ##### Instances
 ``` purescript
-instance responsableSubreddit :: Responsable Subreddit
-instance showSubreddit :: Show Subreddit
-instance subredditIsForeign :: IsForeign Subreddit
+Responsable Subreddit
+Show Subreddit
+IsForeign Subreddit
 ```
 
 #### `LinkPostRec`
@@ -175,7 +181,7 @@ newtype LinkPost
 
 ##### Instances
 ``` purescript
-instance requestableLinkPost :: Requestable LinkPost
+Requestable LinkPost
 ```
 
 #### `SelfPostRec`
@@ -193,7 +199,7 @@ newtype SelfPost
 
 ##### Instances
 ``` purescript
-instance requestableSelfPost :: Requestable SelfPost
+Requestable SelfPost
 ```
 
 #### `StubbyPostRec`
@@ -210,10 +216,10 @@ newtype StubbyPost
 
 ##### Instances
 ``` purescript
-instance responsableStubbyPost :: Responsable StubbyPost
-instance genericStubbyPost :: Generic StubbyPost
-instance showStubbyPost :: Show StubbyPost
-instance stubbyPostIsForeign :: IsForeign StubbyPost
+Responsable StubbyPost
+Generic StubbyPost
+Show StubbyPost
+IsForeign StubbyPost
 ```
 
 #### `ReplyRec`
@@ -231,9 +237,9 @@ newtype Reply
 
 ##### Instances
 ``` purescript
-instance requestableReply :: Requestable Reply
-instance genericReply :: Generic Reply
-instance showReply :: Show Reply
+Requestable Reply
+Generic Reply
+Show Reply
 ```
 
 #### `runPost`

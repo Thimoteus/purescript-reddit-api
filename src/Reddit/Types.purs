@@ -3,6 +3,7 @@ module Reddit.Types (
   Requestable,
   RedditS(),
   REnv(),
+  AffReq(),
   R(),
   AppInfo(),
   Token(),
@@ -41,31 +42,31 @@ import Prelude
 import Data.Foreign (Foreign(), F())
 import Data.Foreign.Class (IsForeign, read, readProp)
 import Data.Generic (Generic, gShow, gEq)
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple())
 import Data.Maybe (Maybe(..))
 import Data.Either (Either(..), either)
 import Data.Foreign (readArray, isArray, readString)
 import Data.Foreign.Class (readJSON)
 import Data.Foreign.Index (prop, hasProperty)
 import Data.Traversable (sequence)
-import Data.Array (take, filter)
+import Data.Array (filter)
 import Data.Array.Unsafe (unsafeIndex)
 import Data.Time (Milliseconds())
+import Data.Date (Now())
 import Data.StrMap (StrMap())
 
 import Control.Bind ((>=>))
-import Control.Monad.Eff (Eff())
-import Control.Monad.Eff.Exception (EXCEPTION(), Error(), error)
-import Control.Monad.State.Trans (StateT(..))
-import Control.Monad.Except.Trans (ExceptT(..))
-import Control.Monad.Reader.Trans (ReaderT(..))
+import Control.Monad.Eff.Exception (Error(), error)
+import Control.Monad.State.Trans (StateT())
+import Control.Monad.Reader.Trans (ReaderT())
 
-import Node.SimpleRequest (REQUEST(), Verb(..), AffReq())
+import qualified Node.SimpleRequest(Verb(), AffReq()) as SR 
 
 import Reddit.Util
 
 -- | The all-important R monad.
 
+type AffReq e = SR.AffReq ( now :: Now | e )
 type RedditS = Tuple Milliseconds Token
 type REnv e = ReaderT AppInfo (AffReq e)
 type R e d = StateT RedditS (REnv e) d
@@ -100,9 +101,9 @@ newtype Token = Token { accessToken :: String
                       , expiresIn :: Int
                       , scope :: String }
 
-type RedditRequestRec a = { endpt :: String, method :: Verb, content :: Maybe a}
+type RedditRequestRec a = { endpt :: String, method :: SR.Verb, content :: Maybe a}
 newtype RedditRequest a = RRequest { endpt :: String
-                                   , method :: Verb
+                                   , method :: SR.Verb
                                    , content :: Maybe a }
 
 type PostRec = { domain :: String

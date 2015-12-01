@@ -4,7 +4,6 @@ import Prelude
 import Data.Foreign (unsafeFromForeign, Foreign())
 import qualified Data.String as S
 import Data.Time (Milliseconds(..))
-import Unsafe.Coerce (unsafeCoerce)
 import Math (floor)
 import Data.Maybe.Unsafe (fromJust)
 import Data.Int (fromNumber)

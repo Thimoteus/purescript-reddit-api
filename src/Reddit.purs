@@ -24,7 +24,7 @@ module Reddit (
 import Prelude
 
 import Node.SimpleRequest (
-    REQUEST(), AffReq(), Opts(), SRHeaderOptions(), Verb(..), Response(),
+    REQUEST(), Opts(), SRHeaderOptions(), Verb(..), Response(),
     srHeaderOpts, headers, hostname, path, method, auth
   )
 import Node.SimpleRequest.Secure (request)
@@ -35,8 +35,8 @@ import Data.List (List(..), (:))
 import Data.StrMap (singleton, fromList)
 import Data.Options ((:=))
 import Data.Maybe (Maybe(..), maybe)
-import Data.Either (Either(..), either)
-import Data.Date (nowEpochMilliseconds)
+import Data.Either (either)
+import Data.Date (nowEpochMilliseconds, Now())
 import Data.Time (Milliseconds(..))
 import Data.Traversable (traverse)
 
@@ -45,11 +45,10 @@ import Control.Monad.Eff.Class (liftEff)
 import Control.Monad.Eff.Exception (EXCEPTION(), Error())
 import Control.Monad.Aff (attempt, later', launchAff, runAff)
 import Control.Monad.Aff.Class (liftAff)
-import qualified Control.Monad.State.Class as State -- (get, put)
-import qualified Control.Monad.Reader.Class as Env -- (ask)
+import qualified Control.Monad.State.Class (get, put) as State
+import qualified Control.Monad.Reader.Class (ask) as Env
 import Control.Monad.Trans (lift)
 import Control.Monad.Error.Class (throwError)
-import Control.Monad.Except.Trans (runExceptT)
 import Control.Monad.State.Trans (evalStateT)
 import Control.Monad.Reader.Trans (runReaderT)
 import Control.Apply ((*>))
@@ -60,13 +59,13 @@ import Reddit.Util
 -- | Run an R computation, given login information and error/success callbacks.
 runR :: forall e. R e Unit
                -> AppInfo
-               -> (Error -> Eff ( request :: REQUEST | e ) Unit)
-               -> (Unit -> Eff ( request :: REQUEST | e ) Unit)
-               -> Eff ( request :: REQUEST | e ) Unit
+               -> (Error -> Eff ( now :: Now, request :: REQUEST | e ) Unit)
+               -> (Unit -> Eff ( now :: Now, request :: REQUEST | e ) Unit)
+               -> Eff ( now :: Now, request :: REQUEST | e ) Unit
 runR r app err succ = runAff err succ $ unravelR r app
 
 -- | Launch an R computation, given login information, discarding errors.
-launchR :: forall e. R e Unit -> AppInfo -> Eff ( err :: EXCEPTION, request :: REQUEST | e ) Unit
+launchR :: forall e. R e Unit -> AppInfo -> Eff ( now :: Now, err :: EXCEPTION, request :: REQUEST | e ) Unit
 launchR r = launchAff <<< unravelR r
 
 -- | Unravels the monad transformer stack. The StateT transformer is initialized
